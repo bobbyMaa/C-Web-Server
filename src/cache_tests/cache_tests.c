@@ -10,7 +10,7 @@ char *test_cache_create()
   int max_size = 10;
   int hash_size = 0;
 
-  struct cache *cache = cache_create(max_size, hash_size);
+  cache *cache = cache_create(max_size, hash_size);
 
   // Check that each field of the cache struct was initialized to the proper value
   mu_assert(cache, "Your cache_create function did not return a valid pointer to the created cache");
@@ -32,7 +32,7 @@ char *test_cache_alloc_entry()
   char *content = "<head>Bazz Lurman</head>";
   int content_len = strlen(content) + 1; // +1 to include the \0
 
-  struct cache_entry *ce = alloc_entry(path, content_type, content, content_len);
+  cache_entry *ce = alloc_entry(path, content_type, content, content_len);
 
   // Check that the allocated entry was initialized with expected values
   mu_assert(check_strings(ce->path, path) == 0, "Your alloc_entry function did not allocate the path field to the expected string");
@@ -48,12 +48,12 @@ char *test_cache_alloc_entry()
 char *test_cache_put()
 {
   // Create a cache with 3 slots
-  struct cache *cache = cache_create(3, 0);
+  cache *cache = cache_create(3, 0);
   // Create 4 test entries
-  struct cache_entry *test_entry_1 = alloc_entry("/1", "text/plain", "1", 2);
-  struct cache_entry *test_entry_2 = alloc_entry("/2", "text/html", "2", 2);
-  struct cache_entry *test_entry_3 = alloc_entry("/3", "application/json", "3", 2);
-  struct cache_entry *test_entry_4 = alloc_entry("/4", "image/png", "4", 2);
+  cache_entry *test_entry_1 = alloc_entry("/1", "text/plain", "1", 2);
+  cache_entry *test_entry_2 = alloc_entry("/2", "text/html", "2", 2);
+  cache_entry *test_entry_3 = alloc_entry("/3", "application/json", "3", 2);
+  cache_entry *test_entry_4 = alloc_entry("/4", "image/png", "4", 2);
 
   // Add in a single entry to the cache
   cache_put(cache, test_entry_1->path, test_entry_1->content_type, test_entry_1->content, test_entry_1->content_length);
@@ -103,13 +103,13 @@ char *test_cache_put()
 char *test_cache_get()
 {
   // Create a cache with 2 slots
-  struct cache *cache = cache_create(2, 0);
+  cache *cache = cache_create(2, 0);
   // Create 3 test entries
-  struct cache_entry *test_entry_1 = alloc_entry("/1", "text/plain", "1", 2);
-  struct cache_entry *test_entry_2 = alloc_entry("/2", "text/html", "2", 2);
-  struct cache_entry *test_entry_3 = alloc_entry("/3", "application/json", "3", 2);
+  cache_entry *test_entry_1 = alloc_entry("/1", "text/plain", "1", 2);
+  cache_entry *test_entry_2 = alloc_entry("/2", "text/html", "2", 2);
+  cache_entry *test_entry_3 = alloc_entry("/3", "application/json", "3", 2);
 
-  struct cache_entry *entry;
+  cache_entry *entry;
 
   // Insert an entry into the cache, then retrieve it
   cache_put(cache, test_entry_1->path, test_entry_1->content_type, test_entry_1->content, test_entry_1->content_length);

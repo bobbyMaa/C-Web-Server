@@ -1,12 +1,12 @@
-CC=gcc
-CFLAGS=-Wall -Wextra
+CC=clang
+CFLAGS=-Wall -Wextra -g
 
 OBJS=server.o net.o file.o mime.o cache.o hashtable.o llist.o
 
 all: server
 
 server: $(OBJS)
-	gcc -o $@ $^
+	clang -g -o $@ $^
 
 net.o: net.c net.h
 

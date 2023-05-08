@@ -898,9 +898,9 @@ As far as when to use one over the other, really, you could use either, most of 
 
 The fact that garbage is being rendered seems to indicate that the content of the file you're sending down to the client is not well-formed. One likely cause of this could be if you called `free` on the `file_data` struct on the pointer pointing to the `file_data` struct somewhere else in your server code. This points to the likely fact that cache entries do not own the content they're responsible for. To put this more concretely, if each allocated entry only has a pointer to its content instead of a _copy_ of its content, then this is likely the cause of the problem:
 ```c
-struct cache_entry *alloc_entry(char *path, char *content_type, void *content, int content_length)
+cache_entry *alloc_entry(char *path, char *content_type, void *content, int content_length)
 {
-    struct cache_entry *ce = malloc(sizeof *ce);
+    cache_entry *ce = malloc(sizeof *ce);
     ce->content = content;     // <--- Here, the entry only has a shared pointer to the content
     ...
 }
@@ -909,9 +909,9 @@ With the above code, since the entry only has a _shared_ reference to to the con
 
 To circumvent this issue, when allocating a new entry in the cache, each cache entry should own a copy of the content that it is storing. In other words, allocate and copy additional memory for each entry that has enough space to hold a fresh copy of the content so that `free`ing the `file_data` struct somewhere else in the server doesn't affect `file_data` structs.
 ```c
-struct cache_entry *alloc_entry(char *path, char *content_type, void *content, int content_length)
+cache_entry *alloc_entry(char *path, char *content_type, void *content, int content_length)
 {
-    struct cache_entry *ce = malloc(sizeof *ce);
+    cache_entry *ce = malloc(sizeof *ce);
     ce->content = malloc(content_length);
     memcpy(ce->content, content, content_length);  // <--- Now, the entry has its own allocated chunk of memory with the content
     ...

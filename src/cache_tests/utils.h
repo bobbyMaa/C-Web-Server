@@ -14,7 +14,7 @@ int check_strings(char *input, char *expected)
   return *input - *expected;
 }
 
-int check_cache_entries(struct cache_entry *input, struct cache_entry *expected)
+int check_cache_entries(cache_entry *input, cache_entry *expected)
 { 
   if (input == NULL) {
     return 1;

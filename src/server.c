@@ -38,6 +38,8 @@
 
 #define SERVER_FILES "./serverfiles"
 #define SERVER_ROOT "./serverroot"
+/* 目前只处理两种请求，request和post */
+#define REQUEST_NUM 2
 
 /**
  * Send an HTTP response
@@ -52,12 +54,23 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 {
     const int max_response_size = 262144;
     char response[max_response_size];
-
+    const int max_date_lenth = 40;
     // Build HTTP response and store it in response
-
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    char date[max_date_lenth] = {0};
+    time_t t = time(NULL);
+    struct tm tm = *localtime((const time_t *)&t);
+    (void)sprintf(date, "Date: Month:%d Day:%d %02d:%02d:%02d %d", tm.tm_mon + 1,
+                  tm.tm_mday, tm.tm_hour, tm.tm_min, tm.tm_sec, tm.tm_year + 1);
+    char connection[] = "Connection: close";
+    char content_len[20] = {0};
+    (void)sprintf(content_len, "Content-Length:%d", strlen((const char *)body) + 1);
+    int response_length = sprintf(response, "%s\n%s\n%s\n%s\n%s\n\n%s",
+        header, date, connection, content_len, content_type, (char *)body);
+    if (response_length <= 0) {
+        perror("generate response message failed");
+        return -1;
+    }
+    response_length += 1;
 
     // Send it all!
     int rv = send(fd, response, response_length, 0);
@@ -69,6 +82,25 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
     return rv;
 }
 
+int itoa(int num, char *buffer, int butter_len)
+{
+    int i = 0;
+    while (num != 0) {
+        char tmp = num % 10;
+        if (i >= butter_len - 1) {
+            return -1;
+        }
+        buffer[i++] = tmp + 48;
+        num /= 10;
+    }
+	buffer[i] = '\n';
+    for (int j = 0; j < (i >> 1); j++) {
+		char k = buffer[j];
+		buffer[j] = buffer[i - 1 -j];
+		buffer[i - 1 -j] = k;
+	}
+	return 0;
+}
 
 /**
  * Send a /d20 endpoint response
@@ -76,16 +108,13 @@ int send_response(int fd, char *header, char *content_type, void *body, int cont
 void get_d20(int fd)
 {
     // Generate a random number between 1 and 20 inclusive
-    
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    srand((unsigned)time(NULL));
+    int random_num = rand() % 20 + 1;
+    char random_num_str[3] = {0};
 
-    // Use send_response() to send it back as text/plain data
-
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    (void)itoa(random_num, random_num_str, 3);
+    send_response(fd, "HTTP/1.1 200 OK", "text/plain", random_num_str, sizeof(random_num_str));
+    return;
 }
 
 /**
@@ -117,11 +146,9 @@ void resp_404(int fd)
 /**
  * Read and return a file from disk or cache
  */
-void get_file(int fd, struct cache *cache, char *request_path)
+void get_file(int fd, cache *cache, char *request_path)
 {
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
+    
 }
 
 /**
@@ -140,7 +167,8 @@ char *find_start_of_body(char *header)
 /**
  * Handle HTTP request and send response
  */
-void handle_http_request(int fd, struct cache *cache)
+
+void handle_http_request(int fd, cache *cache)
 {
     const int request_buffer_size = 65536; // 64K
     char request[request_buffer_size];
@@ -153,11 +181,22 @@ void handle_http_request(int fd, struct cache *cache)
         return;
     }
 
-
-    ///////////////////
-    // IMPLEMENT ME! //
-    ///////////////////
-
+    char request_type[5] = {0};
+    char request_file[200] = {0};
+    (void)sscanf(request, "%s %s", request_type, request_file);
+    for (int i = 0; i < REQUEST_NUM; i++) {
+        if (strncmp(request_type, "GET", strlen(request_type)) == 0) {
+            if ((strlen(request_file) == strlen("/d20")) &&
+                (strncmp(request_file, "/d20", strlen(request_file)) == 0)) {
+                return get_d20(fd);
+            } else {
+                return get_file(fd, cache, request_file);
+            }
+        }
+        if (strncmp(request_type, "POST", strlen(request_type)) == 0) {
+            /* POST处理 */
+        }
+    }
     // Read the first two components of the first line of the request 
  
     // If GET, handle the get endpoints
@@ -178,7 +217,7 @@ int main(void)
     struct sockaddr_storage their_addr; // connector's address information
     char s[INET6_ADDRSTRLEN];
 
-    struct cache *cache = cache_create(10, 0);
+    cache *cache = cache_create(10, 0);
 
     // Get a listening socket
     int listenfd = get_listener_socket(PORT);
@@ -204,7 +243,6 @@ int main(void)
             perror("accept");
             continue;
         }
-
         // Print out a message that we got the connection
         inet_ntop(their_addr.ss_family,
             get_in_addr((struct sockaddr *)&their_addr),
